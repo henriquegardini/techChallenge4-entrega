@@ -51,6 +51,4 @@ public class Entrega {
     @Column(name = "data_entrega")
     private LocalDate dataEntrega;
 
-//    private Pedido pedido;
-
 }

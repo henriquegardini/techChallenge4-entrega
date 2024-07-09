@@ -10,7 +10,6 @@ import br.com.fiap.techChallenge4.entrega.model.StatusEntrega;
 import br.com.fiap.techChallenge4.entrega.repository.EntregaRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
