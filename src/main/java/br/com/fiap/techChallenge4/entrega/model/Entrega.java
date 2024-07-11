@@ -32,9 +32,9 @@ public class Entrega {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "id_pedido")
     @NotNull
     @Positive
+    @Column(name = "id_pedido")
     private Long idPedido;
 
     @Column(name = "id_entregador")

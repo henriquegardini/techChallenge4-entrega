@@ -1,6 +1,6 @@
 package br.com.fiap.techChallenge4.entrega.service;
 
-import br.com.fiap.techChallenge4.entrega.Feign.Pedido;
+import br.com.fiap.techChallenge4.entrega.Feign.PedidoClient;
 import br.com.fiap.techChallenge4.entrega.dto.EntregaDto;
 import br.com.fiap.techChallenge4.entrega.dto.EntregaExibicaoDto;
 import br.com.fiap.techChallenge4.entrega.dto.EntregaRequestDto;
@@ -16,6 +16,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -25,44 +26,61 @@ public class EntregaService {
 
     private final EntregaRepository entregaRepository;
     private final EntregadorRepository entregadorRepository;
-    private final Pedido pedido;
+    private final PedidoClient pedidoClient;
 
     @Autowired
     private EntregadorService entregadorService;
 
-    public EntregaService(EntregaRepository entregaRepository, EntregadorRepository entregadorRepository, Pedido pedido) {
+    public EntregaService(EntregaRepository entregaRepository, EntregadorRepository entregadorRepository, PedidoClient pedidoClient) {
         this.entregaRepository = entregaRepository;
         this.entregadorRepository = entregadorRepository;
-        this.pedido = pedido;
+        this.pedidoClient = pedidoClient;
     }
 
     public EntregaExibicaoDto criarEntrega(EntregaRequestDto entregaRequestDto) {
+
+        validaExistenciaDeEntregaParaPedido(entregaRequestDto.getIdPedido());
+        var pedidoResponse = buscaPedido(entregaRequestDto.getIdPedido());
+        var entregadorEntrega = buscaEntregador(entregaRequestDto);
+
         Entrega entrega = new Entrega();
         entrega.setStatus(StatusEntrega.EM_ANDAMENTO);
         entrega.setEtapa(EtapaEntrega.EM_SEPARACAO);
         entrega.setDataEstimada(LocalDate.now().plusDays(7));
-
-        var pedidoResponse = buscaPedido(entregaRequestDto.getIdPedido());
         entrega.setIdPedido(pedidoResponse.getId());
-
-        // TODO: validar se o pedido já tem uma entrega
-
-        var entregadorEntrega = buscaEntregador(entregaRequestDto);
         entrega.setIdEntregador(entregadorEntrega.get().getId());
-
         BeanUtils.copyProperties(entregaRequestDto, entrega);
         Entrega entregaCriada = entregaRepository.save(entrega);
 
-        // TODO: chamar o endpoint do pedido para atualizar o status do pedido
+        atualizaStatusPedido(entregadorEntrega.get().getId(), pedidoResponse);
 
         return new EntregaExibicaoDto(entregaCriada);
     }
 
     private PedidoDTO buscaPedido(Long idPedido) {
         try {
-            return pedido.getPedidoById(idPedido);
+            return pedidoClient.getPedidoById(idPedido);
         } catch (Exception e) {
             throw new RuntimeException("O pedido não foi encontrado.");
+        }
+    }
+
+    private void atualizaStatusPedido(Long idPedido, PedidoDTO pedidoClientAtual) {
+        try {
+            pedidoClientAtual.setStatusPedido("AGUARDANDO_ENTREGA");
+            pedidoClient.updatePedido(idPedido, pedidoClientAtual);
+        } catch (Exception e) {
+            throw new RuntimeException("O pedido não foi encontrado.");
+        }
+    }
+
+    private void validaExistenciaDeEntregaParaPedido(Long idPedido) {
+        Optional<Entrega> entregaPedido = entregaRepository.findAll()
+                .stream()
+                .filter(entrega -> entrega.getIdPedido().equals(idPedido))
+                .findFirst();
+        if (entregaPedido.isPresent()) {
+            throw new RuntimeException("O pedido já tem uma entrega em andamento.");
         }
     }
 
@@ -74,7 +92,13 @@ public class EntregaService {
                         entregador.getCepFinal() >= entregaRequestDto.getCepEntrega())
                 .findFirst();
         if (entregadorEntrega.isPresent()) {
-            // TODO: incrementar a quantidade do entregador
+            Entregador entregadorAtual = new Entregador();
+            entregadorAtual.setId(entregadorEntrega.get().getId());
+            entregadorAtual.setNome(entregadorEntrega.get().getNome());
+            entregadorAtual.setCepInicial(entregadorEntrega.get().getCepInicial());
+            entregadorAtual.setCepFinal(entregadorEntrega.get().getCepFinal());
+            entregadorAtual.setQuantidadeEntregas(entregadorEntrega.get().getQuantidadeEntregas() + 1);
+            entregadorRepository.save(entregadorAtual);
             return entregadorEntrega;
         } else {
             throw new RuntimeException("Não foi encontrado nenhum entregador disponível.");
