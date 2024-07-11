@@ -7,23 +7,25 @@ import br.com.fiap.techChallenge4.entrega.model.StatusEntrega;
 import java.time.LocalDate;
 
 public record EntregaExibicaoDto(
-        Long idEntrega,
+        Long id,
         Long idPedido,
-        String nomeEntregador,
-        StatusEntrega statusEntrega,
-        EtapaEntrega etapaEntrega,
-        LocalDate dataEntrega
-//        Pedido pedido
+        Long idEntregador,
+        StatusEntrega status,
+        EtapaEntrega etapa,
+        LocalDate dataEstimada,
+        LocalDate dataRealizada,
+        String nomeReceptor
 ) {
     public EntregaExibicaoDto(Entrega entrega) {
         this(
-                entrega.getIdEntrega(),
+                entrega.getId(),
                 entrega.getIdPedido(),
-                entrega.getNomeEntregador(),
-                entrega.getStatusEntrega(),
-                entrega.getEtapaEntrega(),
-                entrega.getDataEntrega()
-//                entrega.getPedido()
+                entrega.getIdEntregador(),
+                entrega.getStatus(),
+                entrega.getEtapa(),
+                entrega.getDataEstimada(),
+                entrega.getDataRealizada(),
+                entrega.getNomeReceptor()
         );
     }
 }

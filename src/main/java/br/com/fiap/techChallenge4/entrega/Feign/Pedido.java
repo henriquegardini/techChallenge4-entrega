@@ -1,0 +1,13 @@
+package br.com.fiap.techChallenge4.entrega.Feign;
+
+import br.com.fiap.techChallenge4.entrega.dto.PedidoDTO;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+@FeignClient(value = "Pedido", url = "http://localhost:8082")
+public interface Pedido {
+
+    @GetMapping(value = "/pedido/{id}")
+    PedidoDTO getPedidoById(@PathVariable("id") Long id);
+}

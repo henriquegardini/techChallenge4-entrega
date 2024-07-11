@@ -28,8 +28,8 @@ public class EntregaController {
     private EntregaService service;
 
     @PostMapping
-    public EntregaExibicaoDto criarEntrega(@RequestBody @Valid EntregaRequestDto entregaResponseDto) {
-        return service.criarEntrega(entregaResponseDto);
+    public EntregaExibicaoDto criarEntrega(@RequestBody @Valid EntregaRequestDto entregaRequestDto) {
+        return service.criarEntrega(entregaRequestDto);
     }
 
     @GetMapping("{idEntrega}")

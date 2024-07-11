@@ -8,6 +8,6 @@ import lombok.Setter;
 public class EntregaRequestDto {
 
     private Long idPedido;
-    private String cepEntrega;
+    private Integer cepEntrega;
 
 }

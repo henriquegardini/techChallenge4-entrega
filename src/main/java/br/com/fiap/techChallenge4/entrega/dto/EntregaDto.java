@@ -11,11 +11,13 @@ import java.time.LocalDate;
 @Setter
 public class EntregaDto {
 
-    private Long idEntrega;
+    private Long id;
     private Long idPedido;
-    private String nomeEntregador;
-    private StatusEntrega statusEntrega;
-    private EtapaEntrega etapaEntrega;
-    private LocalDate dataEntrega;
+    private Long idEntregador;
+    private StatusEntrega status;
+    private EtapaEntrega etapa;
+    private LocalDate dataEstimada;
+    private LocalDate dataRealizada;
+    private String nomeReceptor;
 
 }

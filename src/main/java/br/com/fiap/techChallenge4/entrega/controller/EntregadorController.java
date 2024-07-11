@@ -28,11 +28,12 @@ public class EntregadorController {
     private EntregadorService service;
 
     @PostMapping
-    public EntregadorExibicaoDto criarEntregador(@RequestBody @Valid EntregadorRequestDto entregadorResponseDto) {
-        return service.criarEntregador(entregadorResponseDto);
+    public EntregadorExibicaoDto criarEntregador(@RequestBody @Valid EntregadorRequestDto entregadorRequestDto) {
+        return service.criarEntregador(entregadorRequestDto);
     }
 
     @GetMapping("{idEntregador}")
+    @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<EntregadorExibicaoDto> buscarEntregador(@PathVariable Long idEntregador) {
         return ResponseEntity.ok(service.buscarEntregador(idEntregador));
     }

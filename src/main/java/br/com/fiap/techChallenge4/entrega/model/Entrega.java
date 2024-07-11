@@ -29,26 +29,32 @@ public class Entrega {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_entrega")
-    private Long idEntrega;
+    @Column(name = "id")
+    private Long id;
 
     @Column(name = "id_pedido")
     @NotNull
     @Positive
     private Long idPedido;
 
-    @Column(name = "nome_entregador")
-    private String nomeEntregador;
+    @Column(name = "id_entregador")
+    private Long idEntregador;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status_entrega")
-    private StatusEntrega statusEntrega;
+    @Column(name = "status")
+    private StatusEntrega status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "etapa_entrega")
-    private EtapaEntrega etapaEntrega;
+    @Column(name = "etapa")
+    private EtapaEntrega etapa;
 
-    @Column(name = "data_entrega")
-    private LocalDate dataEntrega;
+    @Column(name = "data_estimada")
+    private LocalDate dataEstimada;
+
+    @Column(name = "data_realizada")
+    private LocalDate dataRealizada;
+
+    @Column(name = "nome_receptor")
+    private String nomeReceptor;
 
 }
