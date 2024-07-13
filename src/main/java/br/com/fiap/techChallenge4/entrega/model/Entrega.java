@@ -1,5 +1,6 @@
 package br.com.fiap.techChallenge4.entrega.model;
 
+import br.com.fiap.techChallenge4.entrega.dto.PedidoDTO;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

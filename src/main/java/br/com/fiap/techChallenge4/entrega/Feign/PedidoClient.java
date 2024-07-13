@@ -2,6 +2,7 @@ package br.com.fiap.techChallenge4.entrega.Feign;
 
 import br.com.fiap.techChallenge4.entrega.dto.PedidoDTO;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
