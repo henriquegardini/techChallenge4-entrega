@@ -5,8 +5,9 @@ import br.com.fiap.techChallenge4.entrega.dto.AtualizaEntregaRequestDto;
 import br.com.fiap.techChallenge4.entrega.dto.CriarEntregaRequestDto;
 import br.com.fiap.techChallenge4.entrega.dto.EntregaExibicaoDto;
 import br.com.fiap.techChallenge4.entrega.dto.EntregaResponseDTO;
+import br.com.fiap.techChallenge4.entrega.dto.FinalizaEntregaRequestDto;
 import br.com.fiap.techChallenge4.entrega.dto.PedidoDTO;
-import br.com.fiap.techChallenge4.entrega.exception.EntregaNaoEncotradaException;
+import br.com.fiap.techChallenge4.entrega.exception.EntregaNotFoundException;
 import br.com.fiap.techChallenge4.entrega.model.Entrega;
 import br.com.fiap.techChallenge4.entrega.model.Entregador;
 import br.com.fiap.techChallenge4.entrega.model.EtapaEntrega;
@@ -54,7 +55,7 @@ public class EntregaService {
                 Entrega entregaCriada = entregaRepository.save(entrega);
 
                 reservaEntregador(entregador);
-                atualizaStatusPedido(pedido.getId(), pedido);
+                atualizaStatusPedido(pedido.getId(), pedido, "AGUARDANDO_ENTREGA");
                 return getEntregaResponseDTO(entregaCriada, pedido);
             } else {
                 throw new RuntimeException("Não foi encontrado nenhum entregador disponível.");
@@ -73,9 +74,9 @@ public class EntregaService {
         }
     }
 
-    private void atualizaStatusPedido(Long idPedido, PedidoDTO pedido) {
+    private void atualizaStatusPedido(Long idPedido, PedidoDTO pedido, String status) {
         try {
-            pedido.setStatus("AGUARDANDO_ENTREGA");
+            pedido.setStatus(status);
             pedidoClient.updatePedido(idPedido, pedido);
         } catch (Exception e) {
             throw new RuntimeException("SERVIÇO DE PEDIDOS: Ocorreu um problema na atualização do status do pedido. Exceção: ", e);
@@ -114,7 +115,7 @@ public class EntregaService {
             var pedido = buscaPedido(entrega.get().getIdPedido());
             return getEntregaResponseDTO(entrega.get(), pedido);
         } else {
-            throw new EntregaNaoEncotradaException("Entrega não encontrada!");
+            throw new EntregaNotFoundException();
         }
     }
 
@@ -160,6 +161,22 @@ public class EntregaService {
             Entrega entregaAtualizada = entregaRepository.save(entrega.get());
         } else {
             throw new RuntimeException("Entrega não encontrada.");
+        }
+    }
+
+    public void finalizaEntrega(FinalizaEntregaRequestDto finalizaEntregaRequestDTO) {
+        var entrega = entregaRepository.findById(finalizaEntregaRequestDTO.getId());
+        if (entrega.isPresent()) {
+            var pedido = buscaPedido(entrega.get().getIdPedido());
+            atualizaStatusPedido(pedido.getId(), pedido, "ENTREGUE");
+
+            entrega.get().setDataRealizada(finalizaEntregaRequestDTO.getDataRealizada());
+            entrega.get().setNomeReceptor(finalizaEntregaRequestDTO.getNomeReceptor());
+            entrega.get().setEtapa(EtapaEntrega.ENTREGUE);
+            entrega.get().setStatus(StatusEntrega.FINALIZADO);
+            entregaRepository.save(entrega.get());
+        } else {
+            throw new EntregaNotFoundException();
         }
     }
 

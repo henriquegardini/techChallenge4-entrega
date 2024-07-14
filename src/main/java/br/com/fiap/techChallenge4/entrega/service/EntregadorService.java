@@ -3,7 +3,7 @@ package br.com.fiap.techChallenge4.entrega.service;
 import br.com.fiap.techChallenge4.entrega.dto.EntregadorDto;
 import br.com.fiap.techChallenge4.entrega.dto.EntregadorExibicaoDto;
 import br.com.fiap.techChallenge4.entrega.dto.EntregadorRequestDto;
-import br.com.fiap.techChallenge4.entrega.exception.EntregadorNaoEncotradoException;
+import br.com.fiap.techChallenge4.entrega.exception.EntregadorNotFoundException;
 import br.com.fiap.techChallenge4.entrega.model.Entregador;
 import br.com.fiap.techChallenge4.entrega.repository.EntregadorRepository;
 import org.springframework.beans.BeanUtils;
@@ -38,7 +38,7 @@ public class EntregadorService {
         if (entregadorOptional.isPresent()) {
             return new EntregadorExibicaoDto(entregadorOptional.get());
         } else {
-            throw new EntregadorNaoEncotradoException("Entregador não encontrado!");
+            throw new EntregadorNotFoundException();
         }
     }
 
@@ -56,7 +56,7 @@ public class EntregadorService {
         if (entregadorOptional.isPresent()) {
             entregadorRepository.delete(entregadorOptional.get());
         } else {
-            throw new EntregadorNaoEncotradoException("Entregador não encontrado!");
+            throw new EntregadorNotFoundException();
         }
     }
 

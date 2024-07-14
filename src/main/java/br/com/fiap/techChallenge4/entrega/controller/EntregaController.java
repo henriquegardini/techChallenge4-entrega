@@ -1,10 +1,11 @@
 package br.com.fiap.techChallenge4.entrega.controller;
 
 import br.com.fiap.techChallenge4.entrega.dto.AtualizaEntregaRequestDto;
-import br.com.fiap.techChallenge4.entrega.dto.EntregaDto;
-import br.com.fiap.techChallenge4.entrega.dto.EntregaExibicaoDto;
 import br.com.fiap.techChallenge4.entrega.dto.CriarEntregaRequestDto;
+import br.com.fiap.techChallenge4.entrega.dto.EntregaExibicaoDto;
 import br.com.fiap.techChallenge4.entrega.dto.EntregaResponseDTO;
+import br.com.fiap.techChallenge4.entrega.dto.FinalizaEntregaRequestDto;
+import br.com.fiap.techChallenge4.entrega.exception.EntregaNotFoundException;
 import br.com.fiap.techChallenge4.entrega.service.EntregaService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,8 +36,8 @@ public class EntregaController {
     }
 
     @GetMapping("{idEntrega}")
-    public ResponseEntity<EntregaResponseDTO> buscarEntrega(@PathVariable Long idEntrega) {
-        return ResponseEntity.ok(service.buscarEntrega(idEntrega));
+    public EntregaResponseDTO buscarEntrega(@PathVariable Long idEntrega) {
+        return service.buscarEntrega(idEntrega);
     }
 
     @GetMapping
@@ -53,6 +54,11 @@ public class EntregaController {
     @PutMapping
     public void atualizarEntrega(@RequestBody AtualizaEntregaRequestDto entrega) {
         service.atualizarEntrega(entrega);
+    }
+
+    @PostMapping("/finalizar")
+    public void finalizaEntrega(@RequestBody @Valid FinalizaEntregaRequestDto entrega) {
+        service.finalizaEntrega(entrega);
     }
 
 }
