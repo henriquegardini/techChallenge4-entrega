@@ -1,5 +1,6 @@
 package br.com.fiap.techChallenge4.entrega.model;
 
+import br.com.fiap.techChallenge4.entrega.dto.PedidoDTO;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -32,9 +33,9 @@ public class Entrega {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "id_pedido")
     @NotNull
     @Positive
+    @Column(name = "id_pedido")
     private Long idPedido;
 
     @Column(name = "id_entregador")

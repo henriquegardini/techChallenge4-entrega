@@ -1,11 +1,13 @@
 package br.com.fiap.techChallenge4.entrega.service;
 
-import br.com.fiap.techChallenge4.entrega.Feign.Pedido;
-import br.com.fiap.techChallenge4.entrega.dto.EntregaDto;
+import br.com.fiap.techChallenge4.entrega.Feign.PedidoClient;
+import br.com.fiap.techChallenge4.entrega.dto.AtualizaEntregaRequestDto;
+import br.com.fiap.techChallenge4.entrega.dto.CriarEntregaRequestDto;
 import br.com.fiap.techChallenge4.entrega.dto.EntregaExibicaoDto;
-import br.com.fiap.techChallenge4.entrega.dto.EntregaRequestDto;
+import br.com.fiap.techChallenge4.entrega.dto.EntregaResponseDTO;
+import br.com.fiap.techChallenge4.entrega.dto.FinalizaEntregaRequestDto;
 import br.com.fiap.techChallenge4.entrega.dto.PedidoDTO;
-import br.com.fiap.techChallenge4.entrega.exception.EntregaNaoEncotradaException;
+import br.com.fiap.techChallenge4.entrega.exception.EntregaNotFoundException;
 import br.com.fiap.techChallenge4.entrega.model.Entrega;
 import br.com.fiap.techChallenge4.entrega.model.Entregador;
 import br.com.fiap.techChallenge4.entrega.model.EtapaEntrega;
@@ -25,70 +27,109 @@ public class EntregaService {
 
     private final EntregaRepository entregaRepository;
     private final EntregadorRepository entregadorRepository;
-    private final Pedido pedido;
+    private final PedidoClient pedidoClient;
 
     @Autowired
     private EntregadorService entregadorService;
 
-    public EntregaService(EntregaRepository entregaRepository, EntregadorRepository entregadorRepository, Pedido pedido) {
+    public EntregaService(EntregaRepository entregaRepository, EntregadorRepository entregadorRepository, PedidoClient pedidoClient) {
         this.entregaRepository = entregaRepository;
         this.entregadorRepository = entregadorRepository;
-        this.pedido = pedido;
+        this.pedidoClient = pedidoClient;
     }
 
-    public EntregaExibicaoDto criarEntrega(EntregaRequestDto entregaRequestDto) {
-        Entrega entrega = new Entrega();
-        entrega.setStatus(StatusEntrega.EM_ANDAMENTO);
-        entrega.setEtapa(EtapaEntrega.EM_SEPARACAO);
-        entrega.setDataEstimada(LocalDate.now().plusDays(7));
+    public EntregaResponseDTO criarEntrega(CriarEntregaRequestDto criarEntregaRequestDto) {
 
-        var pedidoResponse = buscaPedido(entregaRequestDto.getIdPedido());
-        entrega.setIdPedido(pedidoResponse.getId());
+        if (validaExistenciaDeEntregaParaPedido(criarEntregaRequestDto.getIdPedido())) {
 
-        // TODO: validar se o pedido já tem uma entrega
+            var entregador = buscaEntregador(criarEntregaRequestDto.getCepEntrega());
+            if (entregador.isPresent()) {
+                var pedido = buscaPedido(criarEntregaRequestDto.getIdPedido());
+                Entrega entrega = new Entrega();
+                entrega.setIdPedido(pedido.getId());
+                entrega.setIdEntregador(entregador.get().getId());
+                entrega.setStatus(StatusEntrega.EM_ANDAMENTO);
+                entrega.setEtapa(EtapaEntrega.EM_SEPARACAO);
+                entrega.setDataEstimada(LocalDate.now().plusDays(7));
+                BeanUtils.copyProperties(criarEntregaRequestDto, entrega);
+                Entrega entregaCriada = entregaRepository.save(entrega);
 
-        var entregadorEntrega = buscaEntregador(entregaRequestDto);
-        entrega.setIdEntregador(entregadorEntrega.get().getId());
+                reservaEntregador(entregador);
+                atualizaStatusPedido(pedido.getId(), pedido, "AGUARDANDO_ENTREGA");
+                return getEntregaResponseDTO(entregaCriada, pedido);
+            } else {
+                throw new RuntimeException("Não foi encontrado nenhum entregador disponível.");
+            }
+        } else {
+            throw new RuntimeException("O pedido já tem uma entrega em andamento.");
+        }
 
-        BeanUtils.copyProperties(entregaRequestDto, entrega);
-        Entrega entregaCriada = entregaRepository.save(entrega);
-
-        // TODO: chamar o endpoint do pedido para atualizar o status do pedido
-
-        return new EntregaExibicaoDto(entregaCriada);
     }
 
     private PedidoDTO buscaPedido(Long idPedido) {
         try {
-            return pedido.getPedidoById(idPedido);
+            return pedidoClient.getPedidoById(idPedido);
         } catch (Exception e) {
-            throw new RuntimeException("O pedido não foi encontrado.");
+            throw new RuntimeException("SERVIÇO DE PEDIDOS: Ocorreu um problema na busca do pedido. Exceção: ", e);
         }
     }
 
-    private Optional<Entregador> buscaEntregador(EntregaRequestDto entregaRequestDto) {
-        Optional<Entregador> entregadorEntrega = entregadorRepository.findAll()
+    private void atualizaStatusPedido(Long idPedido, PedidoDTO pedido, String status) {
+        try {
+            pedido.setStatus(status);
+            pedidoClient.updatePedido(idPedido, pedido);
+        } catch (Exception e) {
+            throw new RuntimeException("SERVIÇO DE PEDIDOS: Ocorreu um problema na atualização do status do pedido. Exceção: ", e);
+        }
+    }
+
+    private boolean validaExistenciaDeEntregaParaPedido(Long idPedido) {
+        Optional<Entrega> entregaPedido = entregaRepository.findAll()
+                .stream()
+                .filter(entrega -> entrega.getIdPedido().equals(idPedido))
+                .findFirst();
+        if (entregaPedido.isPresent()) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    private Optional<Entregador> buscaEntregador(Integer cepEntrega) {
+        return entregadorRepository.findAll()
                 .stream()
                 .filter(entregador -> entregador.getQuantidadeEntregas() < 10 &&
-                        entregador.getCepInicial() <= entregaRequestDto.getCepEntrega() &&
-                        entregador.getCepFinal() >= entregaRequestDto.getCepEntrega())
+                        entregador.getCepInicial() <= cepEntrega &&
+                        entregador.getCepFinal() >= cepEntrega)
                 .findFirst();
-        if (entregadorEntrega.isPresent()) {
-            // TODO: incrementar a quantidade do entregador
-            return entregadorEntrega;
+    }
+
+    private void reservaEntregador(Optional<Entregador> entregador) {
+        entregador.get().setQuantidadeEntregas(entregador.get().getQuantidadeEntregas() + 1);
+        entregadorRepository.save(entregador.get());
+    }
+
+    public EntregaResponseDTO buscarEntrega(Long idEntrega) {
+        Optional<Entrega> entrega = entregaRepository.findById(idEntrega);
+        if (entrega.isPresent()) {
+            var pedido = buscaPedido(entrega.get().getIdPedido());
+            return getEntregaResponseDTO(entrega.get(), pedido);
         } else {
-            throw new RuntimeException("Não foi encontrado nenhum entregador disponível.");
+            throw new EntregaNotFoundException();
         }
     }
 
-    public EntregaExibicaoDto buscarEntrega(Long idEntrega) {
-        Optional<Entrega> entregaOptional = entregaRepository.findById(idEntrega);
-
-        if (entregaOptional.isPresent()) {
-            return new EntregaExibicaoDto(entregaOptional.get());
-        } else {
-            throw new EntregaNaoEncotradaException("Entrega não encontrada!");
-        }
+    private static EntregaResponseDTO getEntregaResponseDTO(Entrega entrega, PedidoDTO pedido) {
+        EntregaResponseDTO entregaResponseDTO = new EntregaResponseDTO();
+        entregaResponseDTO.setId(entrega.getId());
+        entregaResponseDTO.setIdEntregador(entrega.getIdEntregador());
+        entregaResponseDTO.setStatus(entrega.getStatus());
+        entregaResponseDTO.setEtapa(entrega.getEtapa());
+        entregaResponseDTO.setDataEstimada(entrega.getDataEstimada());
+        entregaResponseDTO.setDataRealizada(entrega.getDataRealizada());
+        entregaResponseDTO.setNomeReceptor(entrega.getNomeReceptor());
+        entregaResponseDTO.setPedido(pedido);
+        return entregaResponseDTO;
     }
 
     public List<EntregaExibicaoDto> listarEntregas() {
@@ -105,29 +146,38 @@ public class EntregaService {
         if (entregaOptional.isPresent()) {
             entregaRepository.delete(entregaOptional.get());
         } else {
-            throw new RuntimeException("Entrega não encontrada!");
+            throw new RuntimeException("Entrega não encontrada.");
         }
     }
 
-    public EntregaExibicaoDto atualizarEntrega(EntregaDto entregaDto) {
-        Entrega entrega = new Entrega();
-        BeanUtils.copyProperties(entregaDto, entrega);
-        Entrega entregaAtualizada = entregaRepository.save(entrega);
+    public void atualizarEntrega(AtualizaEntregaRequestDto atualizaEntregaRequestDTO) {
+        var entrega = entregaRepository.findById(atualizaEntregaRequestDTO.getId());
+        if (entrega.isPresent()) {
+            entrega.get().setStatus(atualizaEntregaRequestDTO.getStatus());
+            entrega.get().setEtapa(atualizaEntregaRequestDTO.getEtapa());
+            entrega.get().setDataEstimada(atualizaEntregaRequestDTO.getDataEstimada());
+            entrega.get().setDataRealizada(atualizaEntregaRequestDTO.getDataRealizada());
+            entrega.get().setNomeReceptor(atualizaEntregaRequestDTO.getNomeReceptor());
+            Entrega entregaAtualizada = entregaRepository.save(entrega.get());
+        } else {
+            throw new RuntimeException("Entrega não encontrada.");
+        }
+    }
 
-        return new EntregaExibicaoDto(entregaAtualizada);
+    public void finalizaEntrega(FinalizaEntregaRequestDto finalizaEntregaRequestDTO) {
+        var entrega = entregaRepository.findById(finalizaEntregaRequestDTO.getId());
+        if (entrega.isPresent()) {
+            var pedido = buscaPedido(entrega.get().getIdPedido());
+            atualizaStatusPedido(pedido.getId(), pedido, "ENTREGUE");
+
+            entrega.get().setDataRealizada(finalizaEntregaRequestDTO.getDataRealizada());
+            entrega.get().setNomeReceptor(finalizaEntregaRequestDTO.getNomeReceptor());
+            entrega.get().setEtapa(EtapaEntrega.ENTREGUE);
+            entrega.get().setStatus(StatusEntrega.FINALIZADO);
+            entregaRepository.save(entrega.get());
+        } else {
+            throw new EntregaNotFoundException();
+        }
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

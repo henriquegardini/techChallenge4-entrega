@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class EntregaRequestDto {
+public class CriarEntregaRequestDto {
 
     private Long idPedido;
     private Integer cepEntrega;
