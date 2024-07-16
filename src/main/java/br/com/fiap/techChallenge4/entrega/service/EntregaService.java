@@ -1,12 +1,7 @@
 package br.com.fiap.techChallenge4.entrega.service;
 
 import br.com.fiap.techChallenge4.entrega.Feign.PedidoClient;
-import br.com.fiap.techChallenge4.entrega.dto.AtualizaEntregaRequestDto;
-import br.com.fiap.techChallenge4.entrega.dto.CriarEntregaRequestDto;
-import br.com.fiap.techChallenge4.entrega.dto.EntregaExibicaoDto;
-import br.com.fiap.techChallenge4.entrega.dto.EntregaResponseDTO;
-import br.com.fiap.techChallenge4.entrega.dto.FinalizaEntregaRequestDto;
-import br.com.fiap.techChallenge4.entrega.dto.PedidoDTO;
+import br.com.fiap.techChallenge4.entrega.dto.*;
 import br.com.fiap.techChallenge4.entrega.exception.EntregaNotFoundException;
 import br.com.fiap.techChallenge4.entrega.model.Entrega;
 import br.com.fiap.techChallenge4.entrega.model.Entregador;
@@ -55,7 +50,9 @@ public class EntregaService {
                 Entrega entregaCriada = entregaRepository.save(entrega);
 
                 reservaEntregador(entregador);
-                atualizaStatusPedido(pedido.getId(), pedido, "AGUARDANDO_ENTREGA");
+                PedidoRequestDTO pedidoRequestDTO = new PedidoRequestDTO();
+                pedidoRequestDTO.setStatus( "AGUARDANDO_ENTREGA" );
+                atualizaStatusPedido(pedido.getId(), pedidoRequestDTO);
                 return getEntregaResponseDTO(entregaCriada, pedido);
             } else {
                 throw new RuntimeException("Não foi encontrado nenhum entregador disponível.");
@@ -74,9 +71,8 @@ public class EntregaService {
         }
     }
 
-    private void atualizaStatusPedido(Long idPedido, PedidoDTO pedido, String status) {
+    private void atualizaStatusPedido(Long idPedido, PedidoRequestDTO pedido) {
         try {
-            pedido.setStatus(status);
             pedidoClient.updatePedido(idPedido, pedido);
         } catch (Exception e) {
             throw new RuntimeException("SERVIÇO DE PEDIDOS: Ocorreu um problema na atualização do status do pedido. Exceção: ", e);
@@ -168,7 +164,9 @@ public class EntregaService {
         var entrega = entregaRepository.findById(finalizaEntregaRequestDTO.getId());
         if (entrega.isPresent()) {
             var pedido = buscaPedido(entrega.get().getIdPedido());
-            atualizaStatusPedido(pedido.getId(), pedido, "ENTREGUE");
+            PedidoRequestDTO pedidoRequestDTO = new PedidoRequestDTO();
+            pedidoRequestDTO.setStatus( "ENTREGUE" );
+            atualizaStatusPedido(pedido.getId(), pedidoRequestDTO);
 
             entrega.get().setDataRealizada(finalizaEntregaRequestDTO.getDataRealizada());
             entrega.get().setNomeReceptor(finalizaEntregaRequestDTO.getNomeReceptor());
